@@ -190,22 +190,3 @@ train %>%
   select(item_description)
 ```
 
-# Quick modelling
-
-Try predicting price by category_name and item_condition_id.
-Not enough memory to use category_name_3 so use category_name_2.
-For now, drop category_name NA.
-
-```{r}
-model_lm = train %>% 
-  filter(!is.na(category_name_3)) %>% 
-  lm(log(price + 0.01) ~ category_name_2 + item_condition_id, data = .)
-```
-
-```{r}
-broom::tidy(model_lm)
-```
-
-Large coefficients for items you would expect: tablets, bags, footware etc.
-
-Negative coefficient for item_condition_id, which seems counterintuitive and suggests overfitting.
