@@ -41,6 +41,8 @@ Histogram of item_condition_id
 plot(hist(train$item_condition_id))
 ```
 
+# Categories
+
 How many category names?
 
 ```{r}
@@ -55,7 +57,51 @@ train$category_name_2 %>% unique() %>% length()
 train$category_name_3 %>% unique() %>% length()
 ```
 
+Distribution of category_name_3?
+
+```{r}
+train %>% group_by(category_name_3) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n))
+```
+
+```{r}
+train %>% group_by(category_name_3) %>% 
+  summarise(n = n()) %>% 
+  `$`("n") %>% 
+  log10() %>% 
+  hist(main = "Histogram of log10 number of items in category") %>% 
+  plot()
+```
+
+Many categories that appear a lot, which should make training on them easier, but many categories that are rare.
+
+How many categories with only one item?
+
+```{r}
+train %>% group_by(category_name_3) %>% 
+  summarise(n = n()) %>% 
+  filter(n == 1)
+```
+
+Handmade items can possibly be replaced with identically named items from another broader category.
+
+Items like Home/Furniture/Bathroom Furniture can probably be replaced by other items from Home/Furniture. Is item description any use?
+
+```{r}
+train %>% 
+  filter(category_name_3 == "Home/Furniture/Bathroom Furniture") %>% 
+  `$`("item_description")
+```
+
+Probably not - this is a very specific item.
+
+Items like Men/Blazers & Sports Coats/Double Breasted can probably be grouped with other items from Men/Blazers & Sports Coat.
 Test dataset.
+
+When fitting initial models with coefficient for each category, should look at correlation between variance/accuracy and number of items in that category.
+
+# Test set
 
 ```{r}
 test = read_tsv("../../data/test.tsv")%>% 
@@ -80,6 +126,8 @@ test$category_name_3 %>% unique() %>% setdiff(train$category_name_3 %>% unique()
 
 So can use category_name_2 for test set when category_name doesn't exist in train.
 
+# Price
+
 price by category_name.
 
 ```{r}
@@ -88,6 +136,8 @@ train %>% ggplot(aes(x = category_name_2, y = log(price))) +
 ```
 
 Lots of price variation within given category_name.
+
+# Other columns
 
 How many items with brand names?
 
@@ -123,7 +173,7 @@ item_description_lengths %>% max(na.rm = TRUE)
 What is this?
 
 ```{r}
-train[which(item_description_lengths == 1046), "item_description"]
+train[[which(item_description_lengths == 1046), "item_description"]]
 ```
 
 List of items with their individual prices.
@@ -140,6 +190,8 @@ train %>%
   select(item_description)
 ```
 
+# Quick modelling
+
 Try predicting price by category_name and item_condition_id.
 Not enough memory to use category_name_3 so use category_name_2.
 For now, drop category_name NA.
@@ -149,3 +201,11 @@ model_lm = train %>%
   filter(!is.na(category_name_3)) %>% 
   lm(log(price + 0.01) ~ category_name_2 + item_condition_id, data = .)
 ```
+
+```{r}
+broom::tidy(model_lm)
+```
+
+Large coefficients for items you would expect: tablets, bags, footware etc.
+
+Negative coefficient for item_condition_id, which seems counterintuitive and suggests overfitting.
