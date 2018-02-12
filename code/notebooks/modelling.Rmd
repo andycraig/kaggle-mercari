@@ -15,7 +15,7 @@ train = read_tsv("../../data/train.tsv") %>%
   mutate(category_name_1 = str_match(category_name, "(.*?)/.*")[,2],
          category_name_2 = str_match(category_name, "(.*)/.*")[,2]) %>%  
   rename(category_name_3 = category_name) %>% 
-  mutate(log_price = log(price + 0.01))
+  mutate(target = log1p(price))
 ```
 
 Just retain category_name_3 for which there are at least two instances.
@@ -48,7 +48,7 @@ For now, drop category_name NA.
 ```{r}
 # model_lm = train %>% 
 #   filter(!is.na(category_name_3)) %>% 
-#   lm(log(price + 0.01) ~ category_name_3 + item_condition_id, data = .) %>% 
+#   lm(target ~ category_name_3 + item_condition_id, data = .) %>% 
 #  broom::augment()
 ```
 
@@ -59,7 +59,7 @@ Just average by category_name_3.
 ```{r}
 category_means = train_train %>% 
   group_by(category_name_3) %>% 
-  summarise(mean_log_price = mean(log_price))
+  summarise(mean_target = mean(target))
 category_means
 ```
 
@@ -68,7 +68,7 @@ Train set error.
 ```{r}
 train_set_residuals = train_train %>% 
   left_join(category_means, by = "category_name_3") %>% 
-  mutate(residuals = log_price - mean_log_price) %>% 
+  mutate(residuals = target - mean_target) %>% 
   `$`("residuals")
 mean(train_set_residuals^2)
 ```
@@ -78,7 +78,7 @@ Validation set error.
 ```{r}
 val_set_residuals = train_val %>% 
   left_join(category_means, by = "category_name_3") %>% 
-  mutate(residuals = log_price - mean_log_price) %>% 
+  mutate(residuals = target - mean_target) %>% 
   `$`("residuals")
 mean(val_set_residuals^2)
 ```
